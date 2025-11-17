@@ -1479,6 +1479,116 @@ const ResourcePicker: React.FC<ResourcePickerProps> = ({
     )
 }
 
+// SuccessModal Component
+interface SuccessModalProps {
+    size: "sm" | "md" | "lg"
+    backgroundColor: string
+    primaryColor: string
+    secondaryColor: string
+    fontFamily: string
+    message: string
+    buttonText: string
+    buttonBgColor: string
+    buttonTextColor: string
+    buttonBorderRadius: number
+    itemBorderRadius: string
+    isOpen: boolean
+    onClose: () => void
+    onButtonClick?: () => void
+}
+
+const SuccessModal: React.FC<SuccessModalProps> = ({
+    size,
+    backgroundColor,
+    primaryColor,
+    secondaryColor,
+    fontFamily,
+    message,
+    buttonText,
+    buttonBgColor,
+    buttonTextColor,
+    buttonBorderRadius,
+    itemBorderRadius,
+    isOpen,
+    onClose,
+    onButtonClick,
+}) => {
+    if (!isOpen) return null
+
+    const overlayStyle = {
+        position: "fixed" as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+        padding: adjustToSize(20, size),
+    }
+
+    const modalStyle = {
+        backgroundColor: backgroundColor,
+        borderRadius: itemBorderRadius,
+        padding: adjustToSize(32, size),
+        maxWidth: "500px",
+        width: "100%",
+        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+        position: "relative" as const,
+    }
+
+    const messageStyle = {
+        ...headline2,
+        fontFamily: fontFamily !== "" ? fontFamily : null,
+        fontSize: adjustToSize(20, size),
+        color: primaryColor,
+        marginBottom: adjustToSize(24, size),
+        textAlign: "center" as const,
+        lineHeight: "1.5",
+    }
+
+    const buttonStyle = {
+        ...headline2,
+        fontFamily: fontFamily !== "" ? fontFamily : null,
+        width: "100%",
+        border: "none",
+        padding: adjustToSize(16, size),
+        backgroundColor: buttonBgColor,
+        color: buttonTextColor,
+        fontSize: adjustToSize(17, size),
+        borderRadius: buttonBorderRadius,
+        cursor: "pointer",
+        transition: "opacity 0.2s ease",
+    }
+
+    const handleButtonClick = () => {
+        if (onButtonClick) {
+            onButtonClick()
+        } else {
+            onClose()
+        }
+    }
+
+    const handleOverlayClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+            onClose()
+        }
+    }
+
+    return (
+        <div style={overlayStyle} onClick={handleOverlayClick}>
+            <div style={modalStyle}>
+                <div style={messageStyle}>{message}</div>
+                <button style={buttonStyle} onClick={handleButtonClick}>
+                    {buttonText}
+                </button>
+            </div>
+        </div>
+    )
+}
+
 // AcceptTerms Component
 interface AcceptTermsProps {
     size: "sm" | "md" | "lg"
@@ -1701,6 +1811,14 @@ interface FixedBookingProps {
         confirmed: string
         pending: string
     }
+
+    // Popup settings
+    showPopup: boolean
+    popup: {
+        message: string
+        buttonText: string
+        buttonAction?: string
+    }
 }
 
 // Singleton SDK instance
@@ -1761,8 +1879,8 @@ const formatSlots = (response: any): TimeSlotWithResource[] => {
 
 function FixedBookingComponent(props: FixedBookingProps) {
     const { navigate, routes } = useRouter()
-    const apiUrl = "https://" + props.bkla.apiRegion + ".bookla.com/api"
-    const bookla = useBookla(apiUrl, props.bkla.apiKey)
+    const apiUrl = "https://" + (props.bkla?.apiRegion || "us") + ".bookla.com/api"
+    const bookla = useBookla(apiUrl, props.bkla?.apiKey || "")
 
     // State management
     const [currentStep, setCurrentStep] = useState<BookingStep>(
@@ -1809,6 +1927,10 @@ function FixedBookingComponent(props: FixedBookingProps) {
     const [formData, setFormData] = useState<{ [key: string]: any }>({})
     const [termsAccepted, setTermsAccepted] = useState<boolean>(false)
 
+    // Popup state
+    const [showModal, setShowModal] = useState<boolean>(false)
+    const [bookingStatus, setBookingStatus] = useState<"confirmed" | "pending" | null>(null)
+
     // Refs
     const datePickerRef = useRef<DatePickerRef>(null)
     const formRef = useRef<{ validateForm: () => FormValidation }>()
@@ -1827,8 +1949,10 @@ function FixedBookingComponent(props: FixedBookingProps) {
             bookla.clearAuth()
         }
         setServiceLoaded(false) // Reset service loaded state
-        loadServiceData()
-    }, [props.clientTokens])
+        if (props.bkla) {
+            loadServiceData()
+        }
+    }, [props.clientTokens, props.bkla])
 
     useEffect(() => {
         if (currentStep === BookingStep.Date && serviceLoaded) {
@@ -1838,11 +1962,21 @@ function FixedBookingComponent(props: FixedBookingProps) {
 
     useEffect(() => {
         if (currentStep === BookingStep.Success) {
-            proceedToRoute(props.routes.confirmed)
+            if (props.showPopup) {
+                setBookingStatus("confirmed")
+                setShowModal(true)
+            } else {
+                proceedToRoute(props.routes.confirmed)
+            }
         } else if (currentStep === BookingStep.Pending) {
-            proceedToRoute(props.routes.pending)
+            if (props.showPopup) {
+                setBookingStatus("pending")
+                setShowModal(true)
+            } else {
+                proceedToRoute(props.routes.pending)
+            }
         }
-    }, [currentStep])
+    }, [currentStep, props.showPopup])
 
     useEffect(() => {
         if (serviceLoaded) {
@@ -1855,7 +1989,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
     // ============================================================================
 
     const loadServiceData = async () => {
-        if (props.bkla.companyID === "" || props.serviceID === "") {
+        if (!props.bkla || props.bkla.companyID === "" || props.serviceID === "") {
             return
         }
 
@@ -1865,7 +1999,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
 
         try {
             const response = await bookla.services.get(
-                props.bkla.companyID,
+                props.bkla?.companyID || "",
                 props.serviceID
             )
 
@@ -1898,6 +2032,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
 
     const fetchAvailableDates = async () => {
         if (
+            !props.bkla ||
             props.bkla.companyID === "" ||
             props.serviceID === "" ||
             !serviceLoaded
@@ -1924,7 +2059,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
             }
 
             const response = await bookla.services.getDates(
-                props.bkla.companyID,
+                props.bkla?.companyID || "",
                 props.serviceID,
                 params
             )
@@ -1941,6 +2076,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
     const onDateChange = useCallback(
         async (date: Date) => {
             if (
+                !props.bkla ||
                 props.bkla.companyID === "" ||
                 props.serviceID === "" ||
                 !serviceLoaded
@@ -1986,7 +2122,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
                 }
 
                 const response = await bookla.services.getTimes(
-                    props.bkla.companyID,
+                    props.bkla?.companyID || "",
                     props.serviceID,
                     params
                 )
@@ -1999,7 +2135,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
             }
         },
         [
-            props.bkla.companyID,
+            props.bkla?.companyID || "",
             props.serviceID,
             props.localTime,
             timeZone,
@@ -2018,7 +2154,7 @@ function FixedBookingComponent(props: FixedBookingProps) {
 
         try {
             let data: any = {
-                companyID: props.bkla.companyID,
+                companyID: props.bkla?.companyID || "",
                 serviceID: props.serviceID,
                 resourceID: selectedTime.resourceID,
                 startTime: new Date(
@@ -2080,6 +2216,26 @@ function FixedBookingComponent(props: FixedBookingProps) {
         }
 
         navigate(routeId, "")
+    }
+
+    const handleModalClose = () => {
+        setShowModal(false)
+        setBookingStatus(null)
+        // Reset to initial state
+        setCurrentStep(BookingStep.Date)
+        setSelectedTime(null)
+        setSelectedDate(preselectedDate())
+        setFormData({})
+        setClientData(null)
+        setTermsAccepted(false)
+    }
+
+    const handleModalButtonClick = () => {
+        if (props.popup.buttonAction && props.popup.buttonAction !== "") {
+            proceedToRoute(props.popup.buttonAction)
+        } else {
+            handleModalClose()
+        }
     }
 
     // ============================================================================
@@ -2213,6 +2369,26 @@ function FixedBookingComponent(props: FixedBookingProps) {
                 }
                 `}
             </style>
+
+            {/* Success Modal */}
+            {props.showPopup && (
+                <SuccessModal
+                    size={props.size}
+                    backgroundColor={props.backgroundColor}
+                    primaryColor={props.primaryColor}
+                    secondaryColor={props.secondaryColor}
+                    fontFamily={props.fontFamily}
+                    message={props.popup.message}
+                    buttonText={props.popup.buttonText}
+                    buttonBgColor={props.button.bgColor}
+                    buttonTextColor={props.button.textColor}
+                    buttonBorderRadius={props.button.borderRadius}
+                    itemBorderRadius={props.item.borderRadius}
+                    isOpen={showModal}
+                    onClose={handleModalClose}
+                    onButtonClick={handleModalButtonClick}
+                />
+            )}
 
             {/* Form Step */}
             {currentStep === BookingStep.Form && (
@@ -2795,6 +2971,35 @@ FixedBookingComponent.propertyControls = {
                 type: ControlType.Link,
                 title: "Pending",
                 defaultValue: "/",
+            },
+        },
+    },
+    showPopup: {
+        type: ControlType.Boolean,
+        title: "Show Popup",
+        defaultValue: false,
+        description: "Show popup instead of redirecting after booking",
+    },
+    popup: {
+        type: ControlType.Object,
+        title: "Popup",
+        hidden: (props) => props.showPopup === false,
+        controls: {
+            message: {
+                type: ControlType.String,
+                title: "Message",
+                defaultValue: "Booking confirmed! Thank you for your reservation.",
+            },
+            buttonText: {
+                type: ControlType.String,
+                title: "Button Text",
+                defaultValue: "Close",
+            },
+            buttonAction: {
+                type: ControlType.Link,
+                title: "Button Action",
+                defaultValue: "",
+                description: "Optional: Route to navigate to when button is clicked. Leave empty to just close the popup.",
             },
         },
     },

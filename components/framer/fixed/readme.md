@@ -8,22 +8,87 @@ Online booking widget for fixed duration services using Bookla API. Users can se
 
 ## Installation
 
-### 1. Copy the component files
+### Step 1: Open Your Framer Project
 
-- **Component:** [`component.tsx`](./component.tsx)
+1. Launch **Framer Desktop** or open your project in **Framer Web**
+2. Navigate to your project where you want to add the booking widget
 
-### 2. Add to your Framer project
-- Open your Framer project
-- Create a new Component named `FixedWidget.tsx`
-- Paste the copied code into `FixedWidget.tsx`
-- Drag the `FixedWidget` component onto your canvas
+### Step 2: Create a New Code Component
 
-### 3. Connect with Bookla API
-- Sign up at [Bookla.com](https://bookla.com) to get your API key and company ID
-- In the Framer properties panel, set your:
-  - `bookla.region` to either `'us'` or `'eu'` based on platform location.
-  - `bookla.apiKey` and `bookla.companyID` to connect the component with your Bookla account
-- Set the `serviceID` to the ID of the "fixed" service you want to book
+1. In Framer, click the **"+"** button in the components panel (or press `Cmd/Ctrl + K`)
+2. Select **"Code Component"** from the menu
+3. Name it `FixedBookingWidget` (or any name you prefer)
+4. Click **"Create"**
+
+### Step 3: Copy and Paste the Component Code
+
+1. Open the [`component.tsx`](./component.tsx) file from this repository
+2. **Select all** the code (`Cmd/Ctrl + A`) and **copy** it (`Cmd/Ctrl + C`)
+3. In Framer, you should now see a code editor with a basic component template
+4. **Delete all** the existing template code
+5. **Paste** the copied code into the editor
+6. The component should automatically save (or press `Cmd/Ctrl + S`)
+
+### Step 4: Add Required Dependencies
+
+The component uses external packages. You may need to install them:
+
+1. In Framer, check if there's a **package.json** or dependency management section
+2. If using npm/yarn, install these packages:
+   ```bash
+   npm install uuid
+   ```
+3. The component also uses:
+   - `lucide-react` (for icons) - may need to be installed
+   - `@bookla-app/react-client-sdk` (loaded via CDN in the component)
+
+**Note:** If Framer shows import errors, you may need to:
+- Install packages via Framer's package manager (if available)
+- Or ensure the CDN imports are working properly
+
+### Step 5: Add the Component to Your Canvas
+
+1. In the **Components** panel, find your `FixedBookingWidget` component
+2. **Drag and drop** it onto your canvas
+3. The component should appear with default styling
+
+### Step 6: Configure Bookla API Connection
+
+1. **Sign up** at [Bookla.com](https://bookla.com) if you haven't already
+2. Get your **API Key** and **Company ID** from your Bookla dashboard
+3. Select the component on your canvas
+4. In the **Properties Panel** (right side), find the **"Bookla"** section
+5. Configure:
+   - **API region**: Choose `'us'` or `'eu'` based on your Bookla account location
+   - **API Key**: Paste your Bookla API key
+   - **Company ID**: Paste your Bookla company ID
+6. Set the **Service ID** to the ID of the "fixed" service you want to book
+
+### Step 7: Customize the Component
+
+Use the **Properties Panel** to customize:
+- Colors, fonts, and styling
+- Text labels and messages
+- Form fields
+- Popup settings (see below)
+
+### Troubleshooting
+
+**If the component doesn't appear:**
+- Check the Framer console for errors (View → Console)
+- Ensure all dependencies are properly installed
+- Verify the code was pasted completely
+
+**If API calls fail:**
+- Double-check your API key and Company ID
+- Verify your Service ID is correct
+- Check that your Bookla account is active
+- Ensure your API region matches your account region
+
+**If styling looks off:**
+- Check that all color properties are set correctly
+- Verify font family is available
+- Ensure border radius values are valid
 
 ## Properties
 
@@ -168,17 +233,68 @@ Customize all user-facing text:
 
 ### Navigation Routes
 
-Configure where users are redirected after booking:
+Configure where users are redirected after booking (only used when `showPopup` is `false`):
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `routes.confirmed` | `Link` | `'/'` | Page to redirect to for confirmed bookings |
 | `routes.pending` | `Link` | `'/'` | Page to redirect to for pending bookings |
 
-### Styling Tips
+### Popup Settings
+
+**NEW FEATURE:** Instead of redirecting to a new page after booking, you can show a customizable popup modal.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `showPopup` | `Boolean` | `false` | Enable popup instead of redirecting after booking |
+| `popup.message` | `String` | `'Booking confirmed! Thank you for your reservation.'` | Custom message displayed in the popup |
+| `popup.buttonText` | `String` | `'Close'` | Text for the popup button |
+| `popup.buttonAction` | `Link` | `''` | Optional: Route to navigate to when button is clicked. Leave empty to just close the popup |
+
+**How it works:**
+- When `showPopup` is `true`, after a successful booking, a modal popup appears instead of redirecting
+- The popup uses the same styling as the widget (colors, fonts, border radius) for consistency
+- Users can click outside the popup or use the button to close it
+- If `popup.buttonAction` is set, clicking the button will navigate to that route
+- If `popup.buttonAction` is empty, clicking the button just closes the popup and resets the form
+
+## Quick Usage Examples
+
+### Example 1: Basic Setup with Redirect
+
+1. Add the component to your canvas
+2. Configure Bookla API credentials
+3. Set `showPopup` to `false` (default)
+4. Configure `routes.confirmed` and `routes.pending` to your success pages
+5. Users will be redirected after booking
+
+### Example 2: Using the Popup Feature
+
+1. Add the component to your canvas
+2. Configure Bookla API credentials
+3. Set `showPopup` to `true`
+4. Customize `popup.message` (e.g., "Thank you! Your booking is confirmed.")
+5. Customize `popup.buttonText` (e.g., "Got it" or "View Booking")
+6. Optionally set `popup.buttonAction` to navigate to a specific page when the button is clicked
+7. Users will see a popup after booking instead of being redirected
+
+### Example 3: Custom Styling
+
+1. Match your brand colors:
+   - Set `primaryColor` to your brand color
+   - Set `item.selectColor` to your accent color
+   - Set `button.bgColor` to match your CTA button color
+2. Match your typography:
+   - Set `fontFamily` to your brand font (e.g., "Inter", "Poppins")
+3. Adjust spacing:
+   - Increase `blocks.gap` for more space between sections
+   - Adjust `blocks.padding` for internal spacing
+
+## Styling Tips
 
 - Use `primaryColor` and `item.selectColor` for consistent branding
 - Adjust `blocks.gap` and `blocks.padding` for better spacing
 - Customize `fontFamily` to match your brand typography
 - Set `item.borderRadius` and `button.borderRadius` for consistent corner styling
 - Set `locale` to match your target audience's language and region to ensure proper date, number, and currency formatting
+- The popup automatically inherits your widget's styling for a cohesive look
